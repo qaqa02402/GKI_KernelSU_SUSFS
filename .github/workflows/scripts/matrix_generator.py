@@ -7,6 +7,10 @@ sys.path.insert(0, str(Path(__file__).parent))
 from config import KERNEL_VERSION
 
 
+def _sub_level_sort_key(value: str):
+    return (1, 0) if value == "X" else (0, int(value))
+
+
 def generate_build_matrix() -> list:
     matrix_path = Path(__file__).parent.parent / "config" / "matrix.json"
     with open(matrix_path, 'r') as f:
@@ -30,7 +34,7 @@ def generate_build_matrix() -> list:
     builds.sort(key=lambda x: (
         int(x["android"].replace("android", "")),
         float(x["kernel"]),
-        x["sub_level"] if x["sub_level"] != "X" else "ZZZZ"  # X (LTS) 排在最后
+        _sub_level_sort_key(x["sub_level"])
     ))
 
     return builds
@@ -60,7 +64,7 @@ def generate_classified_matrix() -> dict:
             # 按 sub_level 排序，X (LTS) 排在最后
             sorted_classified[android][kernel] = sorted(
                 classified[android][kernel],
-                key=lambda x: x["sub_level"] if x["sub_level"] != "X" else "ZZZZ"
+                key=lambda x: _sub_level_sort_key(x["sub_level"])
             )
 
     return sorted_classified
