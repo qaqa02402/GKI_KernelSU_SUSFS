@@ -63,7 +63,9 @@ class KernelBuilder:
         "-Wno-error=unused-but-set-variable",
         "-Wno-error=unused-function",
         "-Wno-error=unused-const-variable",
+        "-Wno-error=unused-label",
     ]
+    HOST_COMPAT_FLAGS = "-std=gnu11"
 
     KERNEL_CONFIG_TEMPLATE = """
 # === KernelSU Config ===
@@ -359,6 +361,15 @@ CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
                 with open(task_mmu, "w") as f:
                     f.write(content)
 
+        cleaned = content
+        if "goto bypass;" not in cleaned:
+            cleaned = re.sub(r'^\s*bypass:\n', '', cleaned, flags=re.MULTILINE)
+        if "dentry =" not in cleaned:
+            cleaned = re.sub(r'^\s*struct dentry \*dentry;\n', '', cleaned, flags=re.MULTILINE)
+        if cleaned != content:
+            with open(task_mmu, "w") as f:
+                f.write(cleaned)
+
     def _fix_base_c_header(self):
         base_c = self.work_dir / "common/fs/proc/base.c"
         if not base_c.exists():
@@ -413,6 +424,14 @@ CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
         kcflags_line = f'KCFLAGS="${{KCFLAGS}} {warning_flags}"'
         if kcflags_line not in content:
             content = content.rstrip() + f"\n\n{kcflags_line}\n"
+
+        hostcflags_line = f'HOSTCFLAGS="${{HOSTCFLAGS}} {self.HOST_COMPAT_FLAGS}"'
+        if hostcflags_line not in content:
+            content = content.rstrip() + f"\n{hostcflags_line}\n"
+
+        kbuild_hostcflags_line = f'KBUILD_HOSTCFLAGS="${{KBUILD_HOSTCFLAGS}} {self.HOST_COMPAT_FLAGS}"'
+        if kbuild_hostcflags_line not in content:
+            content = content.rstrip() + f"\n{kbuild_hostcflags_line}\n"
 
         with open(build_config, "w") as f:
             f.write(content)
@@ -597,7 +616,14 @@ CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
         try:
             if (self.work_dir / "build/build.sh").exists():
                 logger.info("使用旧版构建方式...")
-                result = self._run_cmd("LTO=thin BUILD_CONFIG=common/build.config.gki.aarch64 build/build.sh CC=\"/usr/bin/ccache clang\"", check=False)
+                warning_flags = " ".join(self.NON_FATAL_WARNING_FLAGS)
+                result = self._run_cmd(
+                    f'KCFLAGS="$KCFLAGS {warning_flags}" '
+                    f'HOSTCFLAGS="$HOSTCFLAGS {self.HOST_COMPAT_FLAGS}" '
+                    f'KBUILD_HOSTCFLAGS="$KBUILD_HOSTCFLAGS {self.HOST_COMPAT_FLAGS}" '
+                    'LTO=thin BUILD_CONFIG=common/build.config.gki.aarch64 build/build.sh CC="/usr/bin/ccache clang"',
+                    check=False,
+                )
             else:
                 logger.info("使用 Bazel 构建方式...")
                 result = self._run_cmd("tools/bazel build --disk_cache=/home/runner/.cache/bazel --config=fast --lto=thin //common:kernel_aarch64_dist", check=False)

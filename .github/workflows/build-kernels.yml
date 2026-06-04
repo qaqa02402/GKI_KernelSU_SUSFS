@@ -61,7 +61,7 @@ env:
 
 jobs:
   prepare:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       SCRIPTS_DIR: ./.github/workflows/scripts
     outputs:
@@ -84,7 +84,7 @@ jobs:
 
   build:
     needs: prepare
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -114,7 +114,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt update && sudo apt upgrade -y
+          sudo apt update
           sudo apt install -y ccache python3 git curl wget zip unzip xz-utils openssl pixz
           pip install PyYAML
 
@@ -216,7 +216,7 @@ jobs:
   release:
     needs: [prepare, build]
     if: ${{ github.event.inputs.make_release == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
     env:
