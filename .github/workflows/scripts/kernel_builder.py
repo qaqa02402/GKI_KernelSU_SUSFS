@@ -60,7 +60,6 @@ class ShellCommand:
 class KernelBuilder:
     NON_FATAL_WARNING_FLAGS = [
         "-Wno-error=unused-variable",
-        "-Wno-error=unused-but-set-variable",
         "-Wno-error=unused-function",
         "-Wno-error=unused-const-variable",
         "-Wno-error=unused-label",

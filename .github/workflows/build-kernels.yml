@@ -115,7 +115,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y ccache python3 git curl wget zip unzip xz-utils openssl pixz
+          sudo apt install -y build-essential libc6-dev ccache python3 git curl wget zip unzip xz-utils openssl pixz
           pip install PyYAML
 
       - name: Setup AVB signing key
