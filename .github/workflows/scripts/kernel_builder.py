@@ -58,6 +58,13 @@ class ShellCommand:
 
 
 class KernelBuilder:
+    NON_FATAL_WARNING_FLAGS = [
+        "-Wno-error=unused-variable",
+        "-Wno-error=unused-but-set-variable",
+        "-Wno-error=unused-function",
+        "-Wno-error=unused-const-variable",
+    ]
+
     KERNEL_CONFIG_TEMPLATE = """
 # === KernelSU Config ===
 CONFIG_KSU=y
@@ -387,13 +394,28 @@ CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
             with open(config_file, "a") as f:
                 f.write("CONFIG_DEFAULT_BBR=y\n")
 
-        build_config = self.work_dir / "common/build.config.gki"
-        if build_config.exists():
-            with open(build_config, "r") as f:
-                content = f.read()
-            content = content.replace("check_defconfig", "")
-            with open(build_config, "w") as f:
-                f.write(content)
+        for build_config in [
+            self.work_dir / "common/build.config.gki",
+            self.work_dir / "common/build.config.gki.aarch64",
+        ]:
+            self._patch_build_config(build_config)
+
+    def _patch_build_config(self, build_config: Path):
+        if not build_config.exists():
+            return
+
+        with open(build_config, "r") as f:
+            content = f.read()
+
+        content = content.replace("check_defconfig", "")
+
+        warning_flags = " ".join(self.NON_FATAL_WARNING_FLAGS)
+        kcflags_line = f'KCFLAGS="${{KCFLAGS}} {warning_flags}"'
+        if kcflags_line not in content:
+            content = content.rstrip() + f"\n\n{kcflags_line}\n"
+
+        with open(build_config, "w") as f:
+            f.write(content)
 
     def _configure_zram(self):
         config_file = self.work_dir / "common/arch/arm64/configs/gki_defconfig"
