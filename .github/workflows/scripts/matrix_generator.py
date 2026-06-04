@@ -11,6 +11,10 @@ def _sub_level_sort_key(value: str):
     return (1, 0) if value == "X" else (0, int(value))
 
 
+def _runner_for(android: str, kernel: str) -> str:
+    return "ubuntu-24.04" if android == "android15" and kernel == "6.6" else "ubuntu-22.04"
+
+
 def generate_build_matrix() -> list:
     matrix_path = Path(__file__).parent.parent / "config" / "matrix.json"
     with open(matrix_path, 'r') as f:
@@ -25,6 +29,7 @@ def generate_build_matrix() -> list:
                 "kernel": kernel,
                 "sub_level": cfg["sub_level"],
                 "os_patch": cfg["os_patch_level"],
+                "runner": _runner_for(android, kernel),
             }
             if "revision" in cfg:
                 build["revision"] = cfg["revision"]
