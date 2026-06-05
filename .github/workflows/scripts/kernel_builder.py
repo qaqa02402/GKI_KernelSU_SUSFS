@@ -58,6 +58,7 @@ class ShellCommand:
 
 
 class KernelBuilder:
+    SUKISU_DRIVER_VERSION = "40796"
     NON_FATAL_WARNING_FLAGS = [
         "-Wno-error=unused-variable",
         "-Wno-error=unused-function",
@@ -265,6 +266,29 @@ CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
                 self._chdir(ksu_dir)
                 self._run_cmd(f"git checkout {self.config.kernelsu_commit}", check=False)
                 self._chdir(self.work_dir)
+        self._pin_sukisu_driver_version()
+
+    def _pin_sukisu_driver_version(self):
+        kbuild = self.work_dir / "KernelSU/kernel/Kbuild"
+        if not kbuild.exists():
+            raise RuntimeError(f"SukiSU Kbuild 不存在，无法固定 driver version: {kbuild}")
+
+        with open(kbuild, "r") as f:
+            content = f.read()
+
+        updated = re.sub(
+            r'^KSU_VERSION\s*:=.*$',
+            f'KSU_VERSION     := {self.SUKISU_DRIVER_VERSION}',
+            content,
+            count=1,
+            flags=re.MULTILINE,
+        )
+        if updated == content:
+            raise RuntimeError("未找到 KSU_VERSION 定义，无法固定 SukiSU driver version")
+
+        with open(kbuild, "w") as f:
+            f.write(updated)
+        logger.info(f"SukiSU driver version 已固定为 {self.SUKISU_DRIVER_VERSION}")
 
     def add_bbg(self):
         if not self.config.use_bbg:
