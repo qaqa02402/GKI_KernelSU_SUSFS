@@ -55,6 +55,11 @@ on:
         required: false
         type: string
         default: ''
+      kernelsu_driver_version:
+        description: '指定 SukiSU driver version (可选，留空自动匹配最新 release APK)'
+        required: false
+        type: string
+        default: ''
       susfs_commit:
         description: '指定 SUSFS commit hash'
         required: false
@@ -167,6 +172,7 @@ jobs:
           [ "${{ github.event.inputs.supp_op }}" = "true" ] && ARGS="$ARGS --op8e"
           [ "${{ github.event.inputs.set_defbbr }}" = "true" ] && ARGS="$ARGS --bbr"
           [ -z "${{ github.event.inputs.kernelsu_commit }}" ] || ARGS="$ARGS --ksu-commit=${{ github.event.inputs.kernelsu_commit }}"
+          [ -z "${{ github.event.inputs.kernelsu_driver_version }}" ] || ARGS="$ARGS --ksu-driver-version=${{ github.event.inputs.kernelsu_driver_version }}"
           [ -z "${{ github.event.inputs.susfs_commit }}" ] || ARGS="$ARGS --susfs-commit=${{ github.event.inputs.susfs_commit }}"
           [ -z "${{ github.event.inputs.custom_version }}" ] || ARGS="$ARGS --custom-version=${{ github.event.inputs.custom_version }}"
           [ "${{ github.event.inputs.make_release }}" = "true" ] || ARGS="$ARGS --no-release"

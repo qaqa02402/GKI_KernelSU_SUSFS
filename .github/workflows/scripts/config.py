@@ -104,6 +104,7 @@ class BuildConfig:
     os_patch_level: str
     kernelsu_version: str = "Stable(标准)"
     kernelsu_commit: Optional[str] = None
+    kernelsu_driver_version: Optional[str] = None
     susfs_commit: Optional[str] = None
     use_zram: bool = False
     use_kpm: bool = True
@@ -175,6 +176,7 @@ class BuildConfig:
             "os_patch_level": self.os_patch_level,
             "kernelsu_version": self.kernelsu_version,
             "kernelsu_commit": self.kernelsu_commit,
+            "kernelsu_driver_version": self.kernelsu_driver_version,
             "use_zram": self.use_zram,
             "use_kpm": self.use_kpm,
             "use_bbg": self.use_bbg,

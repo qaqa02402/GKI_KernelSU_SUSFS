@@ -2,6 +2,8 @@ import os
 import subprocess
 import logging
 import re
+import json
+import urllib.request
 from pathlib import Path
 from typing import Optional, Callable
 from dataclasses import dataclass, field
@@ -58,7 +60,6 @@ class ShellCommand:
 
 
 class KernelBuilder:
-    SUKISU_DRIVER_VERSION = "40796"
     NON_FATAL_WARNING_FLAGS = [
         "-Wno-error=unused-variable",
         "-Wno-error=unused-function",
@@ -269,6 +270,7 @@ CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
         self._pin_sukisu_driver_version()
 
     def _pin_sukisu_driver_version(self):
+        driver_version = self.config.kernelsu_driver_version or self._fetch_latest_sukisu_driver_version()
         kbuild = self.work_dir / "KernelSU/kernel/Kbuild"
         if not kbuild.exists():
             raise RuntimeError(f"SukiSU Kbuild 不存在，无法固定 driver version: {kbuild}")
@@ -278,7 +280,7 @@ CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
 
         updated = re.sub(
             r'^KSU_VERSION\s*:=.*$',
-            f'KSU_VERSION     := {self.SUKISU_DRIVER_VERSION}',
+            f'KSU_VERSION     := {driver_version}',
             content,
             count=1,
             flags=re.MULTILINE,
@@ -288,7 +290,20 @@ CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
 
         with open(kbuild, "w") as f:
             f.write(updated)
-        logger.info(f"SukiSU driver version 已固定为 {self.SUKISU_DRIVER_VERSION}")
+        logger.info(f"SukiSU driver version 已设置为 {driver_version}")
+
+    def _fetch_latest_sukisu_driver_version(self) -> str:
+        url = "https://api.github.com/repos/SukiSU-Ultra/SukiSU-Ultra/releases/latest"
+        req = urllib.request.Request(url, headers={"User-Agent": "GKI-KernelSU-SUSFS"})
+        with urllib.request.urlopen(req, timeout=30) as response:
+            release = json.loads(response.read().decode("utf-8"))
+
+        for asset in release.get("assets", []):
+            match = re.match(r"^SukiSU_v[^_]+_(\d+)-release\.apk$", asset["name"])
+            if match:
+                return match.group(1)
+
+        raise RuntimeError("无法从 SukiSU-Ultra 最新 release APK 文件名解析 driver version")
 
     def add_bbg(self):
         if not self.config.use_bbg:
